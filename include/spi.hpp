@@ -18,6 +18,7 @@ constexpr int   PAD_SIZE = 40;
 constexpr int   PAD_PITCH = 100;
 constexpr int   PAD_COLS = 8;
 constexpr int   PAD_ROWS = 6;
+constexpr int   PAD_COUNT   = PAD_COLS * PAD_ROWS;  // 48
 constexpr float NORMAL_H = 120.0f;
 constexpr int   SHIFT_PX = 15;
 constexpr float NOISE_SIGMA = 2.0f;
