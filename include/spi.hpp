@@ -36,3 +36,29 @@ bool save_heightmap_png(const std::string& path, const cv::Mat& board);
 bool save_truth_csv(const std::string& path, const std::vector<Defect>& truth);
 
 
+// ---- 2단계: 측정·판정 기준 (예시값, 계획서 5장) ----
+constexpr int    WIN_MARGIN    = 20;     // 검사창 = 패드 + 사방 20칸
+constexpr float  SOLDER_MIN_H  = 30.0f;  // 30µm 넘는 칸만 솔더로 센다
+constexpr double TOL_LO        = 70.0;   // 허용 범위 아래 (%)
+constexpr double TOL_HI        = 130.0;  // 허용 범위 위 (%)
+constexpr double OFFSET_MAX_UM = 60.0;   // 허용 어긋남 (µm)
+
+// 패드 하나를 잰 결과
+struct PadResult {
+    int pad = 0;
+    double area_pct = 0;    // 면적: 정상 대비 %
+    double height_pct = 0;  // 높이: 솔더 칸 평균 높이, 정상 대비 %
+    double volume_pct = 0;  // 부피: 높이 합, 정상 대비 %
+    double offset_um = 0;   // 무게중심 − 패드 중심 거리 (µm)
+    bool bridge = false;    // 옆 패드와 이어졌나
+    bool ok = true;         // 최종 판정
+    std::string reason;     // NG 사유 (예: "volume 50%")
+};
+
+cv::Rect window_rect(int i);
+PadResult measure_pad(const cv::Mat& board, int pad);
+std::vector<bool> find_bridges(const cv::Mat& board);
+void judge(PadResult& r);
+std::vector<PadResult> inspect_board(const cv::Mat& board);
+bool save_result_csv(const std::string& path, const std::vector<PadResult>& results);
+bool save_overlay_png(const std::string& path, const cv::Mat& board, const std::vector<PadResult>& results);
