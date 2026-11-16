@@ -2,5 +2,5 @@ build/
 blank.png
 heightmap.png
 truth.csv
-result.csv
-result.png
+/result.csv
+/result.png
