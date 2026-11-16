@@ -16,6 +16,23 @@ int main() {
 
     bool ok = save_heightmap_png("heightmap.png", board)
            && save_truth_csv("truth.csv", truth); // 둘다 성공하면 true
-    std::cout << (ok ? "heightmap.png, truth.csv 저장 성공" : "저장 실패") << std::endl;
+
+    // 2단계: 검사하고 결과 저장
+    std::vector<PadResult> results = inspect_board(board);
+    ok = ok && save_result_csv("result.csv", results)
+            && save_overlay_png("result.png", board, results);
+
+    // 정답지와 비교: 정상·경계정상은 OK여야 하고, 나머지는 NG여야 한다
+    int wrong = 0;
+    for (const PadResult& r : results) {
+        bool expectOk = truth[r.pad] == Defect::None || truth[r.pad] == Defect::BorderOk;
+        if (!r.ok) std::cout << "NG " << r.pad << ": " << r.reason << '\n';
+        if (r.ok != expectOk) {
+            ++wrong;
+            std::cout << "  틀림! " << r.pad << "번 정답 " << defect_name(truth[r.pad]) << '\n';
+        }
+    }
+    std::cout << "정답과 다른 판정: " << wrong << "개" << std::endl;
+    std::cout << (ok ? "파일 저장 성공" : "저장 실패") << std::endl;
     return ok ? 0 : 1;
 }
