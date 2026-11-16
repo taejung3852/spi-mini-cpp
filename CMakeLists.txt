@@ -15,3 +15,6 @@ enable_testing()
 add_executable(spi_test tests/test_inspect.cpp)
 target_link_libraries(spi_test spi GTest::gtest_main)
 add_test(NAME spi_test COMMAND spi_test)
+
+add_executable(spi_eval src/eval.cpp)
+target_link_libraries(spi_eval spi)
