@@ -57,3 +57,61 @@ TEST(Inspect, EachDefectGetsRightReason) {
     EXPECT_TRUE(res[34].bridge);
     EXPECT_TRUE(res[41].ok);                           // 경계 정상 85%: 통과해야 함
 }
+
+// ---- 3단계: 테스트 더 추가 ----
+
+// 손으로 계산할 수 있는 입력: 빈 판에 0번 패드만 높이 60µm 상자를 놓는다
+// 60은 정상(120)의 절반이니까 면적 100%, 높이 50%, 부피 50%가 나와야 한다
+TEST(Measure, SingleBoxByHand) {
+    cv::Mat b = make_blank(BOARD_W, BOARD_H);
+    b(pad_rect(0)).setTo(60.0f);   // 패드 자리만 60으로 채우기
+
+    PadResult r = measure_pad(b, 0);
+    EXPECT_DOUBLE_EQ(r.area_pct, 100.0);
+    EXPECT_DOUBLE_EQ(r.height_pct, 50.0);
+    EXPECT_DOUBLE_EQ(r.volume_pct, 50.0);
+    EXPECT_DOUBLE_EQ(r.offset_um, 0.0);   // 딱 패드 위에 있으니까 안 밀림
+}
+
+// 경계값 분석 (ISTQB): 70%, 130% 바로 안쪽과 바깥쪽을 확인
+// 판정만 보고 싶어서 측정은 안 하고 PadResult에 숫자를 직접 넣었다
+static PadResult make_result(double volume_pct, double offset_um) {
+    PadResult r;
+    r.area_pct = 100.0;
+    r.height_pct = 100.0;
+    r.volume_pct = volume_pct;
+    r.offset_um = offset_um;
+    judge(r);
+    return r;
+}
+
+TEST(Judge, VolumeBoundary) {
+    EXPECT_FALSE(make_result(69.9, 0).ok);   // 70 아래 -> NG
+    EXPECT_TRUE(make_result(70.0, 0).ok);    // 70 딱 -> OK (경계는 포함)
+    EXPECT_TRUE(make_result(130.0, 0).ok);   // 130 딱 -> OK
+    EXPECT_FALSE(make_result(130.1, 0).ok);  // 130 위 -> NG
+}
+
+TEST(Judge, OffsetBoundary) {
+    EXPECT_TRUE(make_result(100.0, 60.0).ok);    // 60µm 딱 -> OK
+    EXPECT_FALSE(make_result(100.0, 60.1).ok);   // 넘으면 NG
+}
+
+// 예외 상황: 솔더가 하나도 없는 판 -> 죽지 않고 48개 전부 NG(면적 0)
+TEST(Inspect, BlankBoardDoesNotCrash) {
+    cv::Mat b = make_blank(BOARD_W, BOARD_H);
+    std::vector<PadResult> res = inspect_board(b);
+    ASSERT_EQ(res.size(), PAD_COUNT);
+    for (const PadResult& r : res) {
+        EXPECT_FALSE(r.ok);
+        EXPECT_EQ(r.area_pct, 0.0);
+    }
+}
+
+// 검사창이 판 밖으로 나가면 at<float>()이 이상한 곳을 읽는다
+// 제일 구석 패드(0번, 47번)의 창이 판 안에 있는지 확인
+TEST(Window, CornerWindowsInsideBoard) {
+    cv::Rect boardRect(0, 0, BOARD_W, BOARD_H);
+    EXPECT_EQ(window_rect(0) & boardRect, window_rect(0));    // 겹친 부분 = 창 전체면 안쪽
+    EXPECT_EQ(window_rect(47) & boardRect, window_rect(47));
+}
